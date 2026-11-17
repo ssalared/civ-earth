@@ -43,6 +43,10 @@ const Game = {
 
   wireHud() {
     document.getElementById('btnEnd').onclick = () => Net.send({ t: 'action', a: { type: 'endTurn' } });
+    document.getElementById('btnView').onclick = () => {
+      Render.toggleView();
+      document.getElementById('btnView').textContent = Render.view === 'globe' ? '🗺 نمای نقشه' : '🌐 نمای کره';
+    };
     document.getElementById('btnTech').onclick = () => { if (this.state) UI.renderTechTree(this.state, this.myId); };
     document.getElementById('techClose').onclick = () => document.getElementById('techModal').classList.add('hidden');
     document.getElementById('techModal').addEventListener('click', e => { if (e.target.id === 'techModal') e.target.classList.add('hidden'); });
