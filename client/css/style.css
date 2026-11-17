@@ -1,0 +1,180 @@
+:root {
+  --bg: #10151c;
+  --panel: rgba(16, 22, 30, 0.92);
+  --panel-border: rgba(255, 255, 255, 0.09);
+  --text: #e8e4da;
+  --muted: #9aa3ad;
+  --accent: #d4a94e;
+  --accent2: #4fae6c;
+  --danger: #d24f4f;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: Vazirmatn, "Segoe UI", Tahoma, sans-serif;
+  background: var(--bg); color: var(--text); direction: rtl;
+}
+#map { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+#map.dragging { cursor: grabbing; }
+.hidden { display: none !important; }
+
+.btn {
+  background: #232c38; color: var(--text); border: 1px solid var(--panel-border);
+  border-radius: 8px; padding: 8px 14px; font-family: inherit; font-size: 14px;
+  cursor: pointer; transition: all .15s;
+}
+.btn:hover { background: #2d3948; }
+.btn.primary { background: var(--accent); color: #1a1408; border-color: transparent; font-weight: 700; }
+.btn.primary:hover { filter: brightness(1.1); }
+.btn.ghost { background: transparent; }
+.btn.small { padding: 4px 10px; font-size: 12px; }
+.btn:disabled { opacity: .45; cursor: default; }
+
+/* نوار بالا */
+#topbar {
+  position: fixed; top: 10px; right: 50%; transform: translateX(50%);
+  display: flex; gap: 10px; align-items: center; z-index: 10;
+  background: var(--panel); border: 1px solid var(--panel-border);
+  border-radius: 12px; padding: 8px 14px; backdrop-filter: blur(8px);
+}
+.tb-group { display: flex; gap: 14px; align-items: center; font-size: 14px; }
+.tb-group b { color: var(--accent); }
+.tb-sep { width: 1px; height: 18px; background: var(--panel-border); }
+
+/* بازیکن‌ها */
+#players {
+  position: fixed; top: 74px; right: 10px; z-index: 9;
+  background: var(--panel); border: 1px solid var(--panel-border);
+  border-radius: 12px; padding: 10px; min-width: 190px; backdrop-filter: blur(8px);
+}
+.pl-row { display: flex; align-items: center; gap: 8px; padding: 4px 2px; font-size: 13px; }
+.pl-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.pl-score { margin-right: auto; color: var(--muted); font-size: 12px; }
+.pl-dead { opacity: .4; text-decoration: line-through; }
+
+/* پنل منطقه */
+#regionPanel {
+  position: fixed; bottom: 64px; right: 10px; z-index: 10; width: 290px;
+  background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px;
+  padding: 14px; backdrop-filter: blur(8px); max-height: 55vh; overflow-y: auto;
+}
+#regionPanel h3 { font-size: 15px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+#regionPanel .meta { color: var(--muted); font-size: 12.5px; line-height: 1.9; }
+#regionPanel .sect { border-top: 1px solid var(--panel-border); margin-top: 10px; padding-top: 10px; }
+#regionPanel .sect h4 { font-size: 12.5px; color: var(--accent); margin-bottom: 6px; }
+.chip { display: inline-block; background: #232c38; border-radius: 6px; padding: 2px 8px; font-size: 12px; margin: 2px; }
+.actgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+.actgrid .btn { font-size: 12.5px; padding: 7px 6px; text-align: center; }
+.unitrow { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 3px 0; }
+.bar { height: 5px; background: #232c38; border-radius: 3px; overflow: hidden; margin: 4px 0; }
+.bar > div { height: 100%; background: var(--accent2); }
+
+/* رویدادها */
+#log {
+  position: fixed; bottom: 64px; left: 10px; z-index: 8; width: 300px; max-height: 22vh;
+  overflow-y: auto; font-size: 12px; color: var(--muted); pointer-events: none;
+  background: linear-gradient(to top, rgba(10,14,20,.75), transparent); padding: 10px; border-radius: 10px;
+}
+#log div { margin-bottom: 3px; }
+#log b { color: var(--accent); font-weight: 600; }
+
+/* چت */
+#chatBar {
+  position: fixed; bottom: 10px; left: 10px; z-index: 11; display: flex; gap: 6px; width: 340px;
+}
+#chatInput {
+  flex: 1; background: var(--panel); border: 1px solid var(--panel-border); color: var(--text);
+  border-radius: 8px; padding: 8px 10px; font-family: inherit; font-size: 13px; outline: none;
+}
+
+/* بنر بنیان */
+#foundBanner {
+  position: fixed; top: 74px; right: 50%; transform: translateX(50%); z-index: 10;
+  background: var(--panel); border: 1px solid var(--accent); border-radius: 12px;
+  padding: 12px 22px; text-align: center; font-size: 14.5px; backdrop-filter: blur(8px);
+}
+#foundBanner .hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+/* لابی و مودال‌ها */
+.overlay {
+  position: fixed; inset: 0; z-index: 50; background: rgba(5, 8, 12, 0.72);
+  display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);
+}
+.modal {
+  background: #161d27; border: 1px solid var(--panel-border); border-radius: 16px;
+  padding: 28px 30px; width: min(440px, 92vw); max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5);
+}
+.modal.wide { width: min(860px, 94vw); }
+.modal h1 { font-size: 26px; margin-bottom: 4px; }
+.modal h2 { font-size: 19px; }
+.modal .sub { color: var(--muted); font-size: 13.5px; margin-bottom: 18px; }
+.modal label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
+.modal input, .modal select {
+  width: 100%; background: #0e131a; border: 1px solid var(--panel-border); color: var(--text);
+  border-radius: 8px; padding: 10px 12px; font-family: inherit; font-size: 14px; outline: none;
+}
+.modal input:focus { border-color: var(--accent); }
+.row { display: flex; gap: 8px; margin-top: 16px; align-items: center; }
+.joinrow input { width: 140px; }
+.err { color: var(--danger); font-size: 13px; margin-top: 10px; min-height: 18px; }
+.inline { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.inline select { width: auto; padding: 6px; }
+
+#culturePicker, #lobbyCultures2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cult {
+  border: 1px solid var(--panel-border); border-radius: 10px; padding: 10px 12px;
+  cursor: pointer; transition: all .15s; background: #0e131a;
+}
+.cult:hover { border-color: var(--muted); }
+.cult.sel { border-color: var(--accent); background: rgba(212, 169, 78, .08); }
+.cult .cname { font-size: 13.5px; font-weight: 700; display: flex; align-items: center; gap: 7px; }
+.cult .cdesc { font-size: 11.5px; color: var(--muted); margin-top: 3px; line-height: 1.6; }
+.cult .cdot { width: 10px; height: 10px; border-radius: 50%; }
+
+.roomcode { background: #0e131a; border-radius: 10px; padding: 12px; font-size: 15px; text-align: center; margin-bottom: 12px; }
+.roomcode b { color: var(--accent); font-size: 22px; letter-spacing: 4px; margin: 0 8px; }
+.roomcode .hint { display: block; margin-top: 4px; }
+.hint { color: var(--muted); font-size: 12px; }
+#roomPlayers { margin: 8px 0; }
+
+/* درخت فناوری */
+.modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+#techTree { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.tt-branch h3 { font-size: 13.5px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid; }
+.tt-branch.growth h3 { color: #7cc47f; border-color: #7cc47f; }
+.tt-branch.war h3 { color: #d2726c; border-color: #d2726c; }
+.tt-branch.science h3 { color: #6ca6d2; border-color: #6ca6d2; }
+.tt-branch.culture h3 { color: #c2a3d2; border-color: #c2a3d2; }
+.tech {
+  border: 1px solid var(--panel-border); border-radius: 8px; padding: 7px 9px; margin-bottom: 6px;
+  font-size: 12px; background: #0e131a; cursor: pointer; transition: all .15s;
+}
+.tech .tn { font-weight: 700; font-size: 12.5px; display: flex; justify-content: space-between; }
+.tech .tn span { color: var(--accent); font-weight: 400; }
+.tech .td { color: var(--muted); margin-top: 2px; font-size: 11px; }
+.tech.have { border-color: var(--accent2); opacity: .75; }
+.tech.have .tn::after { content: ' ✓'; color: var(--accent2); }
+.tech.avail:hover { border-color: var(--accent); }
+.tech.locked { opacity: .38; cursor: default; }
+.tech.active { border-color: var(--accent); background: rgba(212,169,78,.1); }
+
+/* توست و انتظار */
+#toast {
+  position: fixed; bottom: 120px; right: 50%; transform: translateX(50%); z-index: 60;
+  background: #2a1c1c; color: #f0b8b8; border: 1px solid var(--danger); border-radius: 10px;
+  padding: 10px 18px; font-size: 13.5px; animation: fadein .2s;
+}
+#waiting {
+  position: fixed; bottom: 70px; right: 50%; transform: translateX(50%); z-index: 9;
+  background: var(--panel); border: 1px solid var(--panel-border); border-radius: 10px;
+  padding: 8px 16px; font-size: 13px; color: var(--muted);
+}
+@keyframes fadein { from { opacity: 0; transform: translateX(50%) translateY(8px); } }
+
+@media (max-width: 720px) {
+  #players { display: none; }
+  #log { width: 200px; }
+  #regionPanel { width: 240px; }
+  #techTree { grid-template-columns: 1fr 1fr; }
+}

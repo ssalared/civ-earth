@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>تمدن زمین — بازی استراتژیک جهانی</title>
+<link rel="stylesheet" href="/client/css/style.css">
+</head>
+<body>
+<canvas id="map"></canvas>
+
+<!-- نوار بالا -->
+<div id="topbar" class="hidden">
+  <div class="tb-group" id="tbTurn"></div>
+  <div class="tb-group" id="tbRes"></div>
+  <div class="tb-group">
+    <button id="btnTech" class="btn ghost">🌳 فناوری‌ها</button>
+    <button id="btnEnd" class="btn primary">پایان نوبت ✓</button>
+  </div>
+</div>
+
+<!-- بازیکن‌ها -->
+<div id="players" class="hidden"></div>
+
+<!-- پنل منطقه -->
+<div id="regionPanel" class="panel hidden"></div>
+
+<!-- رویدادها -->
+<div id="log" class="hidden"></div>
+
+<!-- چت -->
+<div id="chatBar" class="hidden">
+  <input id="chatInput" placeholder="پیام…" maxlength="200">
+  <button id="chatSend" class="btn ghost">ارسال</button>
+</div>
+
+<!-- بنر بنیان‌گذاری -->
+<div id="foundBanner" class="hidden">
+  <div>قوم تو آماده‌ی آغاز است. روی نقشه جای بنیان‌گذاری نخستین دهکده را انتخاب کن.</div>
+  <div class="hint">هر جای کره‌ی زمین — کنار رود و ساحل، رشد بهتری دارد</div>
+</div>
+
+<!-- لابی -->
+<div id="lobby" class="overlay">
+  <div class="modal">
+    <h1>🌍 تمدن زمین</h1>
+    <p class="sub">بازی استراتژیک نوبتی روی کره‌ی واقعی زمین</p>
+    <div id="lobbyForm">
+      <label>نام قوم تو</label>
+      <input id="inName" placeholder="مثلاً: آریایی‌ها" maxlength="20">
+      <label>قومیت خود را برگزین</label>
+      <div id="culturePicker"></div>
+      <div class="row">
+        <button id="btnCreate" class="btn primary">اتاق جدید</button>
+      </div>
+      <div class="row joinrow">
+        <input id="inRoom" placeholder="کد اتاق" maxlength="5" style="text-transform:uppercase">
+        <button id="btnJoin" class="btn">پیوستن</button>
+      </div>
+      <div id="lobbyMsg" class="err"></div>
+    </div>
+    <div id="roomView" class="hidden">
+      <div class="roomcode">کد اتاق: <b id="roomCode"></b><span class="hint">این کد را برای دوستانت بفرست</span></div>
+      <div id="roomPlayers"></div>
+      <div class="row">
+        <label class="inline">حریف AI: <select id="aiCount"><option>0</option><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
+        <button id="btnStart" class="btn primary">شروع بازی</button>
+      </div>
+      <div id="lobbyCultures2"></div>
+      <button id="btnLeave" class="btn ghost small" onclick="location.reload()">خروج</button>
+    </div>
+  </div>
+</div>
+
+<!-- درخت فناوری -->
+<div id="techModal" class="overlay hidden">
+  <div class="modal wide">
+    <div class="modal-head"><h2>درخت فناوری</h2><button id="techClose" class="btn ghost small">بستن ✕</button></div>
+    <div id="techTree"></div>
+  </div>
+</div>
+
+<!-- پایان بازی -->
+<div id="gameover" class="overlay hidden"><div class="modal"><h2 id="goTitle"></h2><p id="goText"></p></div></div>
+
+<div id="toast" class="hidden"></div>
+<div id="waiting" class="hidden">⏳ در انتظار سایر بازیکنان…</div>
+
+<script src="/shared/rules.js"></script>
+<script src="/client/js/net.js"></script>
+<script src="/client/js/render.js"></script>
+<script src="/client/js/ui.js"></script>
+<script src="/client/js/main.js"></script>
+</body>
+</html>

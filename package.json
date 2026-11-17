@@ -1,0 +1,25 @@
+{
+  "name": "civ-earth",
+  "version": "1.0.0",
+  "description": "تمدن زمین — بازی استراتژیک نوبتی چندنفره روی نقشه‌ی واقعی کره‌ی زمین",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "build:map": "node tools/build-map.js",
+    "test": "node tools/smoke-test.js && node tools/client-test.js"
+  },
+  "keywords": [
+    "game",
+    "strategy",
+    "4x",
+    "civilization",
+    "persian"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.23.0"
+  },
+  "devDependencies": {
+    "jsdom": "^31.0.1"
+  }
+}
