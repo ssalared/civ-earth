@@ -81,6 +81,23 @@
 
   const COLORS = ['#e0533d', '#3d7de0', '#3dbd6f', '#e0a83d', '#a04fd2', '#3dc4d2', '#d23d92', '#8a9a3d'];
 
+  const CITY_NAMES = {
+    iranian:  ['هگمتانه', 'پارسه', 'تیسفون', 'بلخ', 'سوسا', 'ری', 'شوش', 'اصطخر', 'تخت‌جمشید', 'نسا'],
+    maritime: ['سیراف', 'هرمز', 'کارتاژ', 'اسکندریه', 'بیروت', 'طرطوس', 'جنوه', 'ونیز', 'لیسبون', 'کادیس'],
+    nomad:    ['سمرقند', 'بخارا', 'مرو', 'قپچاق', 'اورگ', 'تورفان', 'کاشغر', 'قره‌کوم', 'آلتای', 'قاراقول'],
+    highland: ['الموت', 'دماوند', 'فیروزکوه', 'آمل', 'کوهسار', 'برفر', 'سربند', 'چالوس', 'پسکوه', 'قلعه'],
+    warrior:  ['آشور', 'نینوا', 'نمرود', 'ماری', 'لاچیش', 'مگیبدو', 'کارشمیش', 'اوروک', 'حما', 'تل‌حلف'],
+    farmer:   ['شوشتر', 'دزفول', 'میمند', 'سبزوار', 'فریمان', 'شهرضا', 'مرودشت', 'خرم‌آباد', 'گنبد', 'نهاوند']
+  };
+  function cityName(st, pid, rid) {
+    const list = CITY_NAMES[st.players[pid].culture] || CITY_NAMES.iranian;
+    const taken = new Set(Object.values(st.regions).map(r => r.name));
+    const free = list.filter(n => !taken.has(n));
+    const pool = free.length ? free : list;
+    const h = (Math.imul(rid, 2654435761) ^ (st.seed || 0)) >>> 0;
+    return pool[h % pool.length];
+  }
+
   const SETTLEMENT_TIERS = [
     { min: 1,  name: 'دهکده' },
     { min: 5,  name: 'آبادی' },
@@ -191,9 +208,10 @@
         if (st.started[pid]) return { ok: false, err: 'قبلاً بنیان گذاشته‌ای' };
         if (!st.map[a.rid]) return { ok: false, err: 'منطقه نامعتبر' };
         if (st.regions[a.rid]) return { ok: false, err: 'این منطقه تصرف شده' };
-        st.regions[a.rid] = { id: a.rid, o: pid, p: 2, g: 0, b: [], u: {}, prod: null, moved: false };
+        const name = cityName(st, pid, a.rid);
+        st.regions[a.rid] = { id: a.rid, o: pid, p: 2, g: 0, b: [], u: {}, prod: null, moved: false, name, cap: 1 };
         st.started[pid] = true;
-        log(st, `${P.name} قوم خود را بنیان نهاد.`);
+        log(st, `${P.name} شهر «${name}» را بنیان نهاد.`);
         return { ok: true };
       }
       case 'claim': {
@@ -244,9 +262,9 @@
         if (to) {
           to.u = from.u; from.u = {}; from.moved = true; to.moved = true;
         } else {
-          st.regions[a.to] = { id: a.to, o: pid, p: 1, g: 0, b: [], u: from.u, prod: null, moved: true };
+          st.regions[a.to] = { id: a.to, o: pid, p: 1, g: 0, b: [], u: from.u, prod: null, moved: true, name: cityName(st, pid, a.to) };
           from.u = {}; from.moved = true;
-          log(st, `${P.name} سرزمین تازه‌ای را مسکن گزید.`);
+          log(st, `${P.name} شهر «${st.regions[a.to].name}» را بنا نهاد.`);
         }
         return { ok: true };
       }
@@ -393,5 +411,5 @@
     }
   }
 
-  return { MAX_TURNS, TERRAIN, BUILDINGS, TECHS, UNITS, CULTURES, COLORS, tierOf, newGame, attachMap, applyAction, allEnded, processTurn, scoreOf, regionYields, regionCap, claimCost, unitCost, adjacent, armyCount, armyPower, atkBonus };
+  return { MAX_TURNS, TERRAIN, BUILDINGS, TECHS, UNITS, CULTURES, COLORS, CITY_NAMES, tierOf, newGame, attachMap, applyAction, allEnded, processTurn, scoreOf, regionYields, regionCap, claimCost, unitCost, adjacent, armyCount, armyPower, atkBonus };
 });

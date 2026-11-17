@@ -7,6 +7,7 @@ const Render = {
   modeTargets: [],
   state: null, myId: null,
   onPick: null,
+  VECTOR_ZOOM: 10,
 
   init(canvas, mapData) {
     this.canvas = canvas;
@@ -55,10 +56,10 @@ const Render = {
     }, { passive: false });
 
     // لمس
-    let tId = null, tx = 0, ty = 0, tMoved = 0, pinch = null;
+    let tx = 0, ty = 0, tMoved = 0, pinch = null;
     canvas.addEventListener('touchstart', e => {
       if (e.touches.length === 1) {
-        tId = e.touches[0].identifier; tx = e.touches[0].clientX; ty = e.touches[0].clientY; tMoved = 0;
+        tx = e.touches[0].clientX; ty = e.touches[0].clientY; tMoved = 0;
       } else if (e.touches.length === 2) {
         pinch = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
       }
@@ -82,7 +83,6 @@ const Render = {
     canvas.addEventListener('touchend', e => {
       if (pinch && e.touches.length < 2) { pinch = null; return; }
       if (tMoved < 10 && this.onPick) this.onPick(this.pick(tx, ty));
-      tId = null;
     });
   },
 
@@ -112,7 +112,7 @@ const Render = {
     const [lon, lat] = this.toWorld(sx, sy);
     for (const r of this.map.regions) {
       for (const poly of r.p) {
-        let bb = this.polyBB(poly);
+        const bb = this.polyBB(poly);
         if (lon < bb[0] || lon > bb[2] || lat < bb[1] || lat > bb[3]) continue;
         if (this.pip(lon, lat, poly)) return r.id;
       }
@@ -124,6 +124,15 @@ const Render = {
     for (const [x, y] of poly) { if (x < b[0]) b[0] = x; if (y < b[1]) b[1] = y; if (x > b[2]) b[2] = x; if (y > b[3]) b[3] = y; }
     return b;
   },
+  mergedBB(polys) {
+    let b = [Infinity, Infinity, -Infinity, -Infinity];
+    for (const p of polys) {
+      const pb = this.polyBB(p);
+      if (pb[0] < b[0]) b[0] = pb[0]; if (pb[1] < b[1]) b[1] = pb[1];
+      if (pb[2] > b[2]) b[2] = pb[2]; if (pb[3] > b[3]) b[3] = pb[3];
+    }
+    return b;
+  },
   pip(lon, lat, poly) {
     let inside = false;
     for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -133,206 +142,206 @@ const Render = {
     return inside;
   },
 
-  // ---------- پخت بافت زمین ----------
+  tracePoly(c, poly, sh) {
+    c.beginPath();
+    poly.forEach(([lon, lat], i) => {
+      const [x, y] = this.toScreen(lon + sh, lat);
+      i ? c.lineTo(x, y) : c.moveTo(x, y);
+    });
+    c.closePath();
+  },
+
+  // ---------- پخت بافت زمین (برای زوم پایین) ----------
   bakeTerrain() {
-    const W = 1440, H = 720;
+    const S = 8; // پیکسل بر درجه
+    const W = 360 * S, H = 180 * S;
     const off = document.createElement('canvas');
     off.width = W; off.height = H;
     const c = off.getContext('2d');
-    const s = 4; // px per degree
     const grad = c.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, '#20415e');
+    grad.addColorStop(0, '#1e3d59');
     grad.addColorStop(0.5, '#2a5478');
-    grad.addColorStop(1, '#20415e');
+    grad.addColorStop(1, '#1e3d59');
     c.fillStyle = grad; c.fillRect(0, 0, W, H);
-    // شبکه‌ی جغرافیایی
     c.strokeStyle = 'rgba(255,255,255,0.045)'; c.lineWidth = 1;
-    for (let lon = -180; lon <= 180; lon += 20) { c.beginPath(); c.moveTo((lon + 180) * s, 0); c.lineTo((lon + 180) * s, H); c.stroke(); }
-    for (let lat = -80; lat <= 80; lat += 20) { c.beginPath(); c.moveTo(0, (90 - lat) * s); c.lineTo(W, (90 - lat) * s); c.stroke(); }
-    // خشکی
-    const path = new Path2D();
+    for (let lon = -180; lon <= 180; lon += 20) { c.beginPath(); c.moveTo((lon + 180) * S, 0); c.lineTo((lon + 180) * S, H); c.stroke(); }
+    for (let lat = -80; lat <= 80; lat += 20) { c.beginPath(); c.moveTo(0, (90 - lat) * S); c.lineTo(W, (90 - lat) * S); c.stroke(); }
+    // هر منطقه جدا پر می‌شود + خط هم‌رنگ برای بستن درزها
     for (const r of this.map.regions) {
-      for (const poly of r.p) {
-        path.moveTo((poly[0][0] + 180) * s, (90 - poly[0][1]) * s);
-        for (let i = 1; i < poly.length; i++) path.lineTo((poly[i][0] + 180) * s, (90 - poly[i][1]) * s);
-        path.closePath();
-      }
-    }
-    c.fillStyle = '#9db26c';
-    c.fill(path);
-    // رنگ زمین‌ها بر اساس نوع
-    for (const r of this.map.regions) {
-      c.fillStyle = Rules.TERRAIN[r.t].color;
-      c.save(); c.clip(path);
+      const col = Rules.TERRAIN[r.t].color;
+      c.fillStyle = col;
+      c.strokeStyle = col;
+      c.lineWidth = 2.5; // ≈ ۰٫۳ درجه — درز بین منطقه‌ها را می‌بندد
+      c.lineJoin = 'round';
       for (const poly of r.p) {
         c.beginPath();
-        c.moveTo((poly[0][0] + 180) * s, (90 - poly[0][1]) * s);
-        for (let i = 1; i < poly.length; i++) c.lineTo((poly[i][0] + 180) * s, (90 - poly[i][1]) * s);
-        c.closePath(); c.fill();
+        poly.forEach(([lon, lat], i) => {
+          const x = (lon + 180) * S, y = (90 - lat) * S;
+          i ? c.lineTo(x, y) : c.moveTo(x, y);
+        });
+        c.closePath();
+        c.fill();
+        c.stroke();
       }
-      c.restore();
     }
-    // سایه‌ی ساحل و بافت
-    c.save(); c.clip(path);
-    c.strokeStyle = 'rgba(255,255,255,0.10)'; c.lineWidth = 1.2; c.stroke(path);
-    for (let i = 0; i < 26000; i++) {
+    // بافت ملایم
+    for (let i = 0; i < 90000; i++) {
       const x = Math.random() * W, y = Math.random() * H;
-      c.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.04)';
+      c.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.03)';
       c.fillRect(x, y, 2, 2);
     }
-    c.restore();
     this.off = off;
-    this.offScale = s;
+    this.offScale = S;
   },
 
   // ---------- رسم ----------
   draw() {
     const c = this.ctx, cv = this.canvas, st = this.state;
     const scale = this.cam.scale;
+    // نرمال‌سازی پیچش کره
+    this.cam.lon = ((this.cam.lon + 180) % 360 + 360) % 360 - 180;
+    this.cam.lat = Math.max(-85, Math.min(85, this.cam.lat));
+
     c.setTransform(1, 0, 0, 1, 0, 0);
-    c.fillStyle = '#1b3450';
+    const grad = c.createLinearGradient(0, 0, 0, cv.height);
+    grad.addColorStop(0, '#1e3d59');
+    grad.addColorStop(0.5, '#2a5478');
+    grad.addColorStop(1, '#1e3d59');
+    c.fillStyle = grad;
     c.fillRect(0, 0, cv.width, cv.height);
 
-    // بافت زمین (با تکرار افقی برای پیچش کره)
     const wDeg = cv.width / scale;
+    const hDeg = cv.height / scale;
     const shifts = [];
     for (const sh of [-360, 0, 360]) {
       const offLon = this.cam.lon + sh;
       if (offLon + wDeg / 2 > -181 && offLon - wDeg / 2 < 181) shifts.push(sh);
     }
-    for (const sh of shifts) {
-      const [x0, y0] = this.toScreen(-180 + sh, 90);
-      const w = 360 * scale, h = 180 * scale;
-      c.drawImage(this.off, x0, y0, w, h);
+    const latTop = this.cam.lat + hDeg / 2, latBot = this.cam.lat - hDeg / 2;
+    const visibleBB = (bb) => shifts.some(sh => {
+      const l = this.cam.lon + sh - wDeg / 2, r = this.cam.lon + sh + wDeg / 2;
+      return bb[2] >= l && bb[0] <= r && bb[3] >= latBot && bb[1] <= latTop;
+    });
+
+    if (st) {
+      const bbs = new Map();
+      for (const r of this.map.regions) bbs.set(r.id, this.mergedBB(r.p));
+      var bbsMap = bbs;
+    }
+
+    // ---------- زمین ----------
+    if (scale < this.VECTOR_ZOOM) {
+      for (const sh of shifts) {
+        const [x0, y0] = this.toScreen(-180 + sh, 90);
+        c.drawImage(this.off, x0, y0, 360 * scale, 180 * scale);
+      }
+    } else {
+      // رندر برداری تیز در زوم بالا
+      c.lineJoin = 'round';
+      for (const r of this.map.regions) {
+        if (!visibleBB(this.mergedBB(r.p))) continue;
+        const col = Rules.TERRAIN[r.t].color;
+        c.fillStyle = col; c.strokeStyle = col;
+        c.lineWidth = Math.max(1.5, scale * 0.06);
+        for (const sh of shifts) for (const poly of r.p) {
+          this.tracePoly(c, poly, sh);
+          c.fill(); c.stroke();
+        }
+      }
     }
 
     if (!st) return;
     const players = st.players || {};
 
-    // مرزها و رنگ قلمروها
-    const visible = (bb) => shifts.some(sh => {
-      const l = this.cam.lon + sh - wDeg / 2, r = this.cam.lon + sh + wDeg / 2;
-      return bb[2] >= l && bb[0] <= r && bb[3] >= this.cam.lat - cv.height / 2 / scale && bb[1] <= this.cam.lat + cv.height / 2 / scale;
-    });
-    const bbs = new Map();
-    for (const r of this.map.regions) bbs.set(r.id, r.p.map(p => this.polyBB(p)));
-
+    // ---------- رنگ قلمروها ----------
     for (const r of this.map.regions) {
       const own = st.regions[r.id];
-      if (!own) continue;
-      const col = players[own.o] ? players[own.o].color : '#888';
-      if (!visible(bbs.get(r.id))) continue;
-      for (const sh of shifts) {
-        for (const poly of r.p) {
-          c.beginPath();
-          poly.forEach(([lon, lat], i) => {
-            const [x, y] = this.toScreen(lon + sh, lat);
-            i ? c.lineTo(x, y) : c.moveTo(x, y);
-          });
-          c.closePath();
-          c.fillStyle = col + '66';
-          c.fill();
-        }
-      }
+      if (!own || !players[own.o]) continue;
+      if (!visibleBB(bbsMap.get(r.id))) continue;
+      c.fillStyle = players[own.o].color + '59';
+      for (const sh of shifts) for (const poly of r.p) { this.tracePoly(c, poly, sh); c.fill(); }
     }
-    // خط مرز
-    c.lineWidth = Math.max(1.2, scale * 0.06);
+    // ---------- مرزها ----------
+    c.lineJoin = 'round';
+    c.lineWidth = Math.max(1.4, scale * 0.08);
     for (const r of this.map.regions) {
+      if (!visibleBB(bbsMap.get(r.id))) continue;
       const own = st.regions[r.id];
-      const col = own && players[own.o] ? players[own.o].color : 'rgba(20,26,32,0.5)';
-      if (!visible(bbs.get(r.id))) continue;
-      for (const sh of shifts) {
-        for (const poly of r.p) {
-          c.beginPath();
-          poly.forEach(([lon, lat], i) => {
-            const [x, y] = this.toScreen(lon + sh, lat);
-            i ? c.lineTo(x, y) : c.moveTo(x, y);
-          });
-          c.closePath();
-          c.strokeStyle = col;
-          c.globalAlpha = own ? 0.95 : 0.35;
-          c.stroke();
-        }
-      }
+      const col = own && players[own.o] ? players[own.o].color : 'rgba(15,20,26,0.55)';
+      c.strokeStyle = col;
+      c.globalAlpha = own ? 0.95 : 0.4;
+      for (const sh of shifts) for (const poly of r.p) { this.tracePoly(c, poly, sh); c.stroke(); }
     }
     c.globalAlpha = 1;
 
-    // نشانگر حالت (بنیان/ادعا/حرکت/حمله)
+    // ---------- نشانگر حالت ----------
     if (this.mode && this.modeTargets.length) {
       c.lineWidth = 2.5;
       c.strokeStyle = this.mode === 'attack' ? '#e0533d' : this.mode === 'move' ? '#3d9de0' : '#4fae6c';
+      c.setLineDash([6, 4]);
       for (const rid of this.modeTargets) {
-        const r = this.map.regions[rid]; if (!r) continue;
-        for (const sh of shifts) {
-          if (!visible(bbs.get(rid))) continue;
-          for (const poly of r.p) {
-            c.beginPath();
-            poly.forEach(([lon, lat], i) => {
-              const [x, y] = this.toScreen(lon + sh, lat);
-              i ? c.lineTo(x, y) : c.moveTo(x, y);
-            });
-            c.closePath(); c.stroke();
-          }
-        }
+        const r = this.map.regions[rid]; if (!r || !visibleBB(bbsMap.get(rid))) continue;
+        for (const sh of shifts) for (const poly of r.p) { this.tracePoly(c, poly, sh); c.stroke(); }
       }
+      c.setLineDash([]);
     }
     if (this.hover !== null && this.hover !== undefined) {
       const r = this.map.regions[this.hover];
-      if (r) {
+      if (r && visibleBB(bbsMap.get(this.hover))) {
         c.lineWidth = 2;
         c.strokeStyle = 'rgba(255,255,255,0.85)';
-        for (const sh of shifts) {
-          if (!visible(bbs.get(this.hover))) continue;
-          for (const poly of r.p) {
-            c.beginPath();
-            poly.forEach(([lon, lat], i) => {
-              const [x, y] = this.toScreen(lon + sh, lat);
-              i ? c.lineTo(x, y) : c.moveTo(x, y);
-            });
-            c.closePath(); c.stroke();
-          }
-        }
+        for (const sh of shifts) for (const poly of r.p) { this.tracePoly(c, poly, sh); c.stroke(); }
       }
     }
 
-    // شهرها و لشکرها
-    const showLabels = scale > 5;
+    // ---------- شهرها و لشکرها ----------
+    const k = Math.max(0.75, scale / 12);
     for (const rid in st.regions) {
       const own = st.regions[rid];
       const r = this.map.regions[rid]; if (!r) continue;
+      if (!visibleBB(bbsMap.get(+rid))) continue;
       const col = players[own.o] ? players[own.o].color : '#fff';
       for (const sh of shifts) {
-        if (!visible(bbs.get(+rid))) continue;
         const [x, y] = this.toScreen(r.c[0] + sh, r.c[1]);
-        const tier = Rules.tierOf(own.p);
-        const rad = Math.max(3.5, Math.min(11, 3.5 + own.p * 0.45)) * Math.max(0.7, scale / 10);
+        const rad = Math.max(4.5, Math.min(14, (4.5 + own.p * 0.55) * k));
         // لشکر
         const army = Rules.armyCount(own);
         if (army > 0) {
-          c.beginPath(); c.arc(x + rad + 7, y - rad - 3, Math.max(5, rad * 0.8), 0, 7);
-          c.fillStyle = '#1a1f26'; c.fill();
-          c.strokeStyle = col; c.lineWidth = 1.5; c.stroke();
-          c.fillStyle = '#fff'; c.font = `bold ${Math.max(9, rad)}px sans-serif`;
+          const ax = x + rad + 9 * k, ay = y - rad - 4 * k;
+          c.beginPath(); c.arc(ax, ay, Math.max(6, rad * 0.85), 0, 7);
+          c.fillStyle = '#151b23'; c.fill();
+          c.strokeStyle = '#e8e4da'; c.lineWidth = 1.5; c.stroke();
+          c.fillStyle = '#fff'; c.font = `bold ${Math.max(10, rad * 0.95)}px sans-serif`;
           c.textAlign = 'center'; c.textBaseline = 'middle';
-          c.fillText('⚔' + army, x + rad + 7, y - rad - 3);
+          c.fillText('⚔' + army, ax, ay + 0.5);
         }
         // شهر
         c.beginPath(); c.arc(x, y, rad, 0, 7);
         c.fillStyle = col; c.fill();
-        c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 1.5; c.stroke();
-        if (scale > 4) {
-          c.fillStyle = '#fff'; c.font = `bold ${Math.max(9, rad * 0.9)}px sans-serif`;
-          c.textAlign = 'center'; c.textBaseline = 'middle';
-          c.fillText(own.p, x, y + 0.5);
-        }
-        if (showLabels && own.p >= 5) {
-          c.font = `${Math.max(10, scale * 1.1)}px Vazirmatn, sans-serif`;
-          c.fillStyle = 'rgba(255,255,255,0.92)';
-          c.strokeStyle = 'rgba(0,0,0,0.6)'; c.lineWidth = 3;
+        c.strokeStyle = own.cap ? '#ffd700' : 'rgba(255,255,255,0.92)';
+        c.lineWidth = own.cap ? 3 : 2;
+        c.stroke();
+        c.fillStyle = '#fff'; c.font = `bold ${Math.max(10, rad)}px sans-serif`;
+        c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillText(own.p, x, y + 0.5);
+        // نام شهر
+        const showName = own.name && (scale > 3.5) && (own.o === this.myId || own.cap || own.p >= 5 || scale > 8);
+        if (showName) {
+          const tier = Rules.tierOf(own.p);
+          const label = (own.cap ? '★ ' : '') + own.name;
+          c.font = `600 ${Math.max(11, Math.min(18, scale * 1.2))}px Vazirmatn, sans-serif`;
           c.textAlign = 'center'; c.textBaseline = 'bottom';
-          const label = tier.name;
-          c.strokeText(label, x, y - rad - 4);
-          c.fillText(label, x, y - rad - 4);
+          c.strokeStyle = 'rgba(0,0,0,0.7)'; c.lineWidth = 3.5;
+          c.strokeText(label, x, y - rad - 5);
+          c.fillStyle = own.cap ? '#ffd700' : '#fff';
+          c.fillText(label, x, y - rad - 5);
+          if (scale > 6) {
+            c.font = `${Math.max(9, scale * 0.8)}px Vazirmatn, sans-serif`;
+            c.strokeStyle = 'rgba(0,0,0,0.7)';
+            c.strokeText(tier.name, x, y - rad - 5 - Math.max(11, Math.min(18, scale * 1.2)));
+            c.fillStyle = 'rgba(255,255,255,0.75)';
+            c.fillText(tier.name, x, y - rad - 5 - Math.max(11, Math.min(18, scale * 1.2)));
+          }
         }
       }
     }
@@ -341,7 +350,7 @@ const Render = {
   focusRegion(rid) {
     const r = this.map.regions[rid]; if (!r) return;
     this.cam.lon = r.c[0]; this.cam.lat = r.c[1];
-    if (this.cam.scale < 12) this.cam.scale = 14;
+    if (this.cam.scale < 16) this.cam.scale = 16;
     this.draw();
   }
 };

@@ -108,7 +108,7 @@ const UI = {
       const y = Rules.regionYields(st, own, own.o);
       const cap = Rules.regionCap(st, own, own.o);
       const tier = Rules.tierOf(own.p);
-      html += `<div class="meta">${tier.name}ِ ${o.name} — جمعیت <b>${own.p}</b> / ${cap}</div>
+      html += `<div class="meta">${own.name ? '🏛 <b>' + own.name + '</b> — ' : ''}${tier.name}ِ ${o.name} — جمعیت <b>${own.p}</b> / ${cap}</div>
         <div class="bar"><div style="width:${Math.min(100, own.p / cap * 100)}%"></div></div>
         <div class="meta">🍞 ${y.food.toFixed(1)} غذا · ⚒ ${y.prod.toFixed(1)} تولید · 🪙 ${y.gold.toFixed(1)} طلا · 🔬 ${y.sci.toFixed(1)} علم</div>`;
       if (own.o === myId) {

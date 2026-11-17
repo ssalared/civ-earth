@@ -126,7 +126,10 @@ const Game = {
     Render.draw();
   },
 
-  found(rid) { Net.send({ t: 'action', a: { type: 'found', rid } }); },
+  found(rid) {
+    Net.send({ t: 'action', a: { type: 'found', rid } });
+    Render.focusRegion(rid);
+  },
   claim(from, target) { Net.send({ t: 'action', a: { type: 'claim', rid: from, target } }); },
   build(rid, bid) { Net.send({ t: 'action', a: { type: 'build', rid, bid } }); document.getElementById('techModal').classList.add('hidden'); },
   recruit(rid, uid) { Net.send({ t: 'action', a: { type: 'recruit', rid, uid, n: 1 } }); document.getElementById('techModal').classList.add('hidden'); },
